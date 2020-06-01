@@ -4,15 +4,6 @@ title: About
 permalink: /about/
 ---
 
-This is the base Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at [jekyllrb.com](https://jekyllrb.com/)
+I have been furloughed since the 28th of May 2020 and I want to use the time well. This is a great opportunity to learn and embark on some personal projects.
 
-You can find the source code for Minima at GitHub:
-[jekyll][jekyll-organization] /
-[minima](https://github.com/jekyll/minima)
-
-You can find the source code for Jekyll at GitHub:
-[jekyll][jekyll-organization] /
-[jekyll](https://github.com/jekyll/jekyll)
-
-
-[jekyll-organization]: https://github.com/jekyll
+It seems like a good idea to keep a log of what I've been doing. A log, on the web - some kind of _web log_. Maybe this _web log_ idea will catch on; could do with a catchier name, though.

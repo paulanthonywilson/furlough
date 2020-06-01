@@ -1,0 +1,48 @@
+---
+layout: post
+title:  "Catching up with last week"
+date:   2020-06-01 21:22:30 +0100
+categories: log
+---
+
+I have been furloughed since the 28th of May 2020. I am not in a big hurry to look for new positions; I want to use the opportunity to learn and embark on some personal projects.
+
+It seems like a good idea to keep a log of what I've been doing. A log, on the web - some kind of _web log_. Maybe this _web log_ idea will catch on; could do with a catchier name, though.
+
+I'll start with a catchup on last week.
+
+## Thursday and Friday, 28th and 29th of May
+
+It seems like a good idea to start work in the morning with a todo list (which would be a bit much to share). After an hour or so of admin and emailing, I got on with the other stuff.
+
+### Correct Horse Battery Staple Update
+
+I made [this microsite](https://correcthorsebatterystaple.com), for generating pass-phrases, years ago and had been meaning to apply security updates for a few weeks now. This all took longer than it ought as I'd not been using Ruby on my personal laptop for at least one Mac Update and hit [Gem](https://rubygems.org) compilition issues. Getting rid of [therubyracer](https://rubygems.org/gems/therubyracer) dependency and blasting the `Gemfile.lock` file did the track - updated and pushed.
+
+### Basic Auth Hex package
+
+[Basic Auth](https://github.com/paulanthonywilson/basic_auth) was a simple [Basic Auth](https://tools.ietf.org/html/rfc7617) implementation for [Elixir's Plug](https://hexdocs.pm/plug/readme.html). I inherited and rewrote it years ago.
+
+I'd recently noticed a reference to Basic Auth in Plug, and sure enough [it is now supported](https://hexdocs.pm/plug/Plug.BasicAuth.html#content) within the package.
+
+Having been benignly [sherlocked](https://www.howtogeek.com/297651/what-does-it-mean-when-a-company-sherlocks-an-app/), it made sense to deprecate the package - except I had no idea how to do that. Searching for [hex deprecate](https://duckduckgo.com/?q=hex+deprecate&t=osx&ia=web) didn't help much, but some (Sherlock-like) detective work did.
+
+```bash
+mix hex.retire deprecated basic_auth 2.2.5
+```
+
+Now it's [retired](https://hex.pm/packages/basic_auth).
+
+### Elixir LiveView
+
+Late afternoon Thursday and most of Friday I worked through the [Live View](https://github.com/phoenixframework/phoenix_live_view) course by [Pragmatic Studios](https://pragmaticstudio.com/phoenix-liveview). I had started it the previous weekend.
+
+It is great fun, and currently free. It is only about half complete but still valuable.
+
+My "code-a-long" is [here](https://github.com/paulanthonywilson/live_view_studio), but it's not that different to the official version.
+
+
+
+
+
+
