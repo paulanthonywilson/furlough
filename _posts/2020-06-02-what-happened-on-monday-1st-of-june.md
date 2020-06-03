@@ -56,7 +56,7 @@ On the other hand, professionally, I would benefit with being more comfortable w
 
 So, off I went following [the AWS with Terraform](https://learn.hashicorp.com/terraform/getting-started/intro) tutorial. First step was to create a new AWS account; I don't control Cultivate any more and the last time I logged on to its AWS account I failed to get past the verification phoning the company's now disconnected landline. Also, yay for 1 year free trial (limitations apply).
 
-Registration was fairly straightforward then I was confronted with using the root account (bad practice) and creating a new [IAM](https://aws.amazon.com/iam/) (messed this up before now). I created the IAM,and it was not too bad. I went for giving it full admin access, on the principle that it's tutorials for now and I can always tighten things up when it gets a bit more serious.
+Registration was fairly straightforward then I was confronted with using the root account (bad practice) and creating a new [IAM](https://aws.amazon.com/iam/) (messed this up before now). I created the IAM,and it was not too bad. I went for giving it full admin access, on the principle that its tutorials for now and I can always tighten things up when it gets a bit more serious.
 
 Tip: there's no point in making the IAM username an email address.
 
@@ -76,7 +76,7 @@ By provisioning I mean updating and installing the appropriate packages and soft
 
 Using `remote-exec` to provision with Terraform is frowned upon, as are [all provisioners](https://www.terraform.io/docs/provisioners/index.html). I don't relish the idea of running a separate Ansible, or Chef or Puppet or whatever to provision.
 
-I am planning to look into [cloud-init](https://cloudinit.readthedocs.io/en/latest/) which at first [does not seem to have the clearest documentation](https://cloudinit.readthedocs.io/en/latest/#) but looks promising from the video on [it's brochure page](https://cloud-init.io).
+I am planning to look into [cloud-init](https://cloudinit.readthedocs.io/en/latest/) which at first [does not seem to have the clearest documentation](https://cloudinit.readthedocs.io/en/latest/#) but looks promising from the video on [its brochure page](https://cloud-init.io).
 
 [Docker](http://docker.com) is also a possibility, and I think most people reach for that these days. I am wary of pulling on that thread: unmanaged containers will cry out to be managed and the next thing there'll be some unwieldy and expensive Kubernetes cluster to manage. Also would anticipate some tedious working around Docker to take advantage of [Beam](https://en.wikipedia.org/wiki/BEAM_(Erlang_virtual_machine)) features. 
 
