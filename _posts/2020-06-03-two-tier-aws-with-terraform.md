@@ -6,7 +6,7 @@ author: Paul Wilson
 categories: log terraform aws
 ---
 
-After [emailing my MP](https://twitter.com/paulanthonywils/status/1268115099497136128) hoping she will support suspending exports of riot control equipment to the USA, it was time to get on with the the rest of the day.
+After [emailing my MP](https://twitter.com/paulanthonywils/status/1268115099497136128) hoping she will support suspending exports of riot control equipment to the USA, it was time to get on with more learning about AWS and Terraform.
 
 [Previously]({% post_url 2020-06-02-tuesday-2nd-of-june---more-aws-and-terraform %}) I'd figured out configuring a security group to be able to ssh on to an AWS instance. A good next step was to use the [example code](https://github.com/terraform-providers/terraform-provider-aws/tree/master/examples/two-tier) to set up a basic two tier architecture - an EC2 instance fronted with an [Elastic Load Balancer](https://aws.amazon.com/elasticloadbalancing/).
 
