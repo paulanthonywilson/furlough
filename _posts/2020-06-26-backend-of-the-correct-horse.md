@@ -92,6 +92,6 @@ I went back to minimal provisioning with Terraform. Right now I'm using the [fil
 
 ## Rust meetup
 
-On Thursday evening I attended the remote [Edinburgh Rust meetup](https://www.meetup.com/rust-edi/), which was an account of a setup to automatically irrigate tomatoes in a greenhouse. I enjoyed the talk, though I have only dabbled in Rust. Obviously I would have used [Nerves](https://www.nerves-project.org) for such a project, but Rust was a fine choice.
+On Thursday evening I attended the remote [Edinburgh Rust meetup](https://www.meetup.com/rust-edi/), which was an account of a setup to automatically irrigate tomatoes in a greenhouse. I enjoyed the talk, though I have only dabbled in Rust. Obviously I would have used [Nerves](https://www.nerves-project.org) for such a project, but Rust was a fine choice. Neil's code is [here](https://github.com/neilgall/pirrigator).
 
 An interesting snippet was using Rust targeted at [Web Assembly](https://webassembly.org) for graphing sensor information. Rust for front-end web visuals seems to be a valuable emerging niche for the language.
