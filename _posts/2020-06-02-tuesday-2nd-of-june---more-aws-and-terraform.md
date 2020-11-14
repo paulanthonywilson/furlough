@@ -8,7 +8,7 @@ categories: log aws terraform
 
 I spent most of today writing up yesterday, which is fine. While it does feel like a block on progress, it reinforces the learning and provides notes for me. Now I have this log, then it makes more sense to write up as I go.
 
-Just now, I did get the [provisioning with remote-exec](https://learn.hashicorp.com/terraform/getting-started/provision#defining-a-provisioner) working with security groups. If you recall, [yesterday](http://localhost:4000/log/2020/06/02/what-happened-on-monday-1st-of-june.html), I went in and messed with the default security groups for a region via the web console to show it was a security group issue.
+Just now, I did get the [provisioning with remote-exec](https://learn.hashicorp.com/terraform/getting-started/provision#defining-a-provisioner) working with security groups. If you recall, [yesterday](/log/2020/06/02/what-happened-on-monday-1st-of-june.html), I went in and messed with the default security groups for a region via the web console to show it was a security group issue.
 
 The 'aws_security_group' documentation is [here](https://www.terraform.io/docs/providers/aws/r/security_group.html). I included the default _all ports, all destinations_ egress as recommended. For the `ingress` I limited it to port 22, for ssh, and 80, to show that nginx is running.
 
