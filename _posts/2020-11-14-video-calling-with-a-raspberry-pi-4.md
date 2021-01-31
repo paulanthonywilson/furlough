@@ -30,13 +30,13 @@ diskutil list
 These showed me the disk was `disk2` and with a partition `disk2s1`.
 
 ```bash
-sudo sudo umount /dev/disk2s1
+diskutil  umount /dev/disk2s1
 ```
 
 That unmounted the _partition_. The following writes the image.
 
 ```bash
-dd if=ubuntu-20.10-preinstalled-desktop-arm64+raspi.img of=/dev/disk2 bs=1m
+sudo dd if=ubuntu-20.10-preinstalled-desktop-arm64+raspi.img of=/dev/disk2 bs=1m
 ```
 
 That took around 13 minutes, without any feedback.
@@ -128,7 +128,6 @@ A Raspberry Pi 4, attached to a TV, is a reasonable solution for family video ca
 
 At the moment Google Hangouts seems to provide the best experience.
 
+# Updates
 
-
-
-
+* **2020-01-31** corrected the disk burning instructions
