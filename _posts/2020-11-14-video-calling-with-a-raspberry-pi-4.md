@@ -128,6 +128,6 @@ A Raspberry Pi 4, attached to a TV, is a reasonable solution for family video ca
 
 At the moment Google Hangouts seems to provide the best experience.
 
-# Updates
+## Updates
 
-* **2020-01-31** corrected the disk burning instructions
+* **2020-01-31** corrected the disk burning instructionsj
