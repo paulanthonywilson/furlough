@@ -6,7 +6,9 @@ author: Paul Wilson
 categories: elixir phoenix security
 ---
 
-This post is about setting a [Content Security Policy](https://content-security-policy.com), specifically in Phoenix. But being about a response header it is probably more widely applicable.
+_This post is about setting a [Content Security Policy](https://content-security-policy.com), specifically in Phoenix. But being about a response header it is probably more widely applicable._
+
+---- 
 
 The other day I ran [sobelow](http://hexdocs.pm/sobelow/) to check the security of a [project](https://github.com/paulanthonywilson/mcam) I've been working on. It was happy enough, apart from suggesting that I added a [Content Security Policy](https://content-security-policy.com). Sobelow's documentations says
 
@@ -17,13 +19,15 @@ plug :put_secure_browser_headers,
     %{"content-security-policy" => "default-src 'self'"}
 ```
 
-Fair enough, I thought, and opened that can of worms. Firing up by development environment and pointing Safari to http://localhost:400 , I found it did not work. Opening up the browser console I saw
+Fair enough, I thought, and opened that can of worms. Firing up by development environment and pointing Safari to _http://localhost:400_   , I found it did not work. Opening up the browser console I saw
 
 ```
-EvalError: Refused to evaluate a string as JavaScript because 'unsafe-eval' is not an allowed source of script in the following Content Security Policy directive: "default-src 'self'".
+EvalError: Refused to evaluate a string as JavaScript because 'unsafe-eval' 
+  is not an allowed source of script in the following Content Security Policy 
+  directive: "default-src 'self'".
 ```
 
-This seemed to be an issue with with Webpack and development mode. One option[^1] would be to not have a Content Security Policy in `dev` mode, but it seems better to keep `dev` fairly close to `prod`, so we can work out issues on our own machines first. In `dev` only lets allow `unsafe-eval`.
+This seemed to be an issue with with Webpack and development mode. One option[^1] would be to not have a Content Security Policy in `dev` mode, but it seems better to keep `dev` fairly close to `prod`, so we can work out issues on our own machines first. Only in `dev` lets get unstuck and allow `unsafe-eval`.
 
 ```elixir
   @content_security_policy (case Mix.env do
@@ -43,12 +47,14 @@ This seemed to be an issue with with Webpack and development mode. One option[^1
 Now Safari gives us:
 
 ```
-Refused to connect to ws://localhost:4000/live/websocket? ...  because it appears in neither the connect-src directive nor the default-src directive of the Content Security Policy
+Refused to connect to ws://localhost:4000/live/websocket? ...  
+  because it appears in neither the connect-src directive nor the 
+  default-src directive of the Content Security Policy
 ```
 
-Oh no, our [LiveView](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html) WebSocket is being blocked. Chrome does not block the WebSocket, which does emphasise the importance of cross-browser testing.  
+Oh no, our [LiveView](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html) WebSocket is being blocked by Safari. (Chrome does not block the WebSocket, which does emphasise the importance of cross-browser testing.)
 
-Checking [the documentation](https://content-security-policy.com/#source_list) it looks like we need to add an explict entry in a `connect-src` directive. First let's find our server host from configuration. (For the purposes of this post I've been adding a Content Security Policy to the example [Starjumps](https://github.com/paulanthonywilson/binary-websockets-example) application.)
+Checking [the documentation](https://content-security-policy.com/#source_list) it looks like we need to add an explict entry in a `connect-src` directive. First let's find our server host from configuration. (For the purposes of this post I've added a Content Security Policy to the example [Starjumps](https://github.com/paulanthonywilson/binary-websockets-example) application.)
 
 ```elixir
 # in the router.ex
@@ -99,12 +105,16 @@ And that is us done. Unless you want to use (say) [Phoenix's Live Dashboard](htt
 Urgh, that's not great. Our browser error console is telling us
 
 ```
-Refused to apply a stylesheet because its hash, its nonce, or 'unsafe-inline' appears in neither the style-src directive nor the default-src directive of the Content Security Policy.
+Refused to apply a stylesheet because its hash, its nonce, or 'unsafe-inline' 
+  appears in neither the style-src directive nor the default-src directive of 
+  the Content Security Policy.
 
-Refused to load data:image/png;base64, iVBORw0KGg... because it does not appear in the 
- img-src directive of the Content Security Policy.
+Refused to load data:image/png;base64, iVBORw0KGg... because it does not appear
+ in the img-src directive of the Content Security Policy.
 
-Refused to execute a script because its hash, its nonce, or 'unsafe-inline' appears in neither the script-src directive nor the default-src directive of the Content Security Policy.
+Refused to execute a script because its hash, its nonce, or 'unsafe-inline' 
+  appears in neither the script-src directive nor the default-src 
+  directive of the Content Security Policy.
 ```
 
 Assuming we only want to load the dashbaord in `dev` mode[^2] then we can solve the issues with `unsave-inline` and allowing `data:` as well as blob for `image:`. 
@@ -124,7 +134,8 @@ We also then run into a font issue
 
 ```
 Refused to load data:font/woff2;base64,d09GMgABAAAA .... 
-ecause it appears in neither the font-src directive nor the default-src directive of the Content Security Policy.
+  because it appears in neither the font-src directive nor the default-src 
+  directive of the Content Security Policy.
 ```
 
 Solveble with
@@ -158,4 +169,4 @@ This gets us working with a reasonable and working Content Security Policy. In a
 
 [^1]: Another option would be to ignore the advice from Sobelow, and not have such a policy at all. I aver that it is best to not ignore advice from security experts. A Content Security Policy may be a pain to set up and maintain but working through these issues helps us be able to put in place "Defence in Depth" against naughty script kiddies. Think about how the British Airways Magecart hack would have gone if browsers were refusing [AJAX requests to baways.com](https://www.theregister.com/2018/09/11/british_airways_website_scripts/)
 
-[^2]: There's a good chance I will want a protected version of the Dashboard in production; I'll look into the `unsafe-inline`, which does not seem like a great production setting and report back at some point.
+[^2]: There's a good chance I will want a protected version of the Dashboard in production; I'll look into the `unsafe-inline`, which does not seem like a great production setting and report back at some point. I expect the clue is in the phrase "its hash, its nonce, or 'unsafe-inline' appears in neither"
