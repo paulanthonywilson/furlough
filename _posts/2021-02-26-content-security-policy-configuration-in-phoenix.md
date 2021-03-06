@@ -6,11 +6,11 @@ author: Paul Wilson
 categories: elixir phoenix security
 ---
 
-_This post is about setting a [Content Security Policy](https://content-security-policy.com), specifically in Phoenix. But being about a response header it is probably more widely applicable._
+_This post is about setting a [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP), specifically in Phoenix. But being about a response header it is probably more widely applicable._
 
 ---- 
 
-The other day I ran [sobelow](http://hexdocs.pm/sobelow/) to check the security of a [project](https://github.com/paulanthonywilson/mcam) I've been working on. It was happy enough, apart from suggesting that I added a [Content Security Policy](https://content-security-policy.com). Sobelow's documentations says
+The other day I ran [sobelow](http://hexdocs.pm/sobelow/) to check the security of a [project](https://github.com/paulanthonywilson/mcam) I've been working on. It was happy enough, apart from suggesting that I added a [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP). Sobelow's documentations says
 
 > When it comes to CSP, just about any policy is better than none. If you are unsure about which policy to use, the following mitigates most typical XSS vectors:
 
@@ -54,7 +54,7 @@ Refused to connect to ws://localhost:4000/live/websocket? ...
 
 Oh no, our [LiveView](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html) WebSocket is being blocked by Safari. (Chrome does not block the WebSocket, which does emphasise the importance of cross-browser testing.)
 
-Checking [the documentation](https://content-security-policy.com/#source_list) it looks like we need to add an explict entry in a `connect-src` directive. First let's find our server host from configuration. (For the purposes of this post I've added a Content Security Policy to the example [Starjumps](https://github.com/paulanthonywilson/binary-websockets-example) application.)
+Checking [the documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy#directives) it looks like we need to add an explict entry in a `connect-src` directive. First let's find our server host from configuration. (For the purposes of this post I've added a Content Security Policy to the example [Starjumps](https://github.com/paulanthonywilson/binary-websockets-example) application.)
 
 ```elixir
 # in the router.ex
@@ -161,9 +161,17 @@ This gets us working with a reasonable and working Content Security Policy. In a
 
 ## Useful links
 
-* [Offical documentation](https://content-security-policy.com)
 * [MDN documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP)
 * [An excellent post / Stack Overflow Answer](https://stackoverflow.com/questions/30280370/how-does-content-security-policy-csp-work#30280371)
+
+
+## Updates
+
+### **2020-03-06**
+
+Updated from [this comment in Elixir Forum](https://elixirforum.com/t/phoenix-blog-post-content-security-policy-configuration-in-phoenix-with-liveview/37809/4?u=paulanthonywilson): removed links to [https://content-security-policy.com](https://content-security-policy.com), replacing the the MDN version where appropriate
+
+Also, while I'm here, the Live View Dasbhaord [does now support nonces](https://github.com/phoenixframework/phoenix_live_dashboard/blob/master/CHANGELOG.md#v028-2020-09-15); I shall look into this when I've a bit of time. Also [`plug_content_security_policy`](https://elixirforum.com/t/plug-content-security-policy-generate-csp-headers-with-support-for-csp-level-2-nonces/24586) may be worth some investigaation.
 
 ---- 
 
