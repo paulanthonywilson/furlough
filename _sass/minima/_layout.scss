@@ -235,6 +235,7 @@
     @include media-query($on-laptop) {
       @include relative-font-size(1.75);
     }
+
   }
 
   h3 {
@@ -252,4 +253,9 @@
       @include relative-font-size(1.125);
     }
   }
+
+  hr {
+    margin: 1.5em 0;
+  }
 }
+
