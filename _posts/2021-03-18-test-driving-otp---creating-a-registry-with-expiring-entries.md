@@ -631,7 +631,7 @@ Try shutting down the peers, and waiting 35 seconds. The registrations should di
 
 ---
 
-An Elixir Forum thread for this post is [here](https://elixirforum.com/t/elixir-blog-post-test-driving-otp-creating-a-registry-with-expiring-entries/38278), if have questions or criticism.
+An Elixir Forum thread for this post is [here](https://elixirforum.com/t/elixir-blog-post-test-driving-otp-creating-a-registry-with-expiring-entries/38278), if have a question or criticism.
 
 --- 
 
