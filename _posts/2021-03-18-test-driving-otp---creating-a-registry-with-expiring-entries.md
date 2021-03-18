@@ -628,6 +628,11 @@ iex(1)> Multicasting.registered_peers
 
 Try shutting down the peers, and waiting 35 seconds. The registrations should disappear.
 
+
+---
+
+An Elixir Forum thread for this post is [here](https://elixirforum.com/t/elixir-blog-post-test-driving-otp-creating-a-registry-with-expiring-entries/38278), if have a questions or criticism.
+
 --- 
 
 [^1]: pandemic reference not intended
