@@ -229,6 +229,14 @@
 .post-content {
   margin-bottom: $spacing-unit;
 
+  h1 {
+    // The title is h1 so it is correct to have an h1
+    // inside the post. If we include a LiveBook then
+    // its title will get displayed; hiding it saves
+    // doing any fancy processing.  
+    display: none;
+  }
+
   h2 {
     @include relative-font-size(2);
 

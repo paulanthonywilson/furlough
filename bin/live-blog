@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+set -e
+
+
+ROOT_PATH=`dirname $0`/../_posts/livebook
+
+echo $ROOT_PATH 
+ls $ROOT_PATH
+
+livebook server --root-path=$ROOT_PATH
