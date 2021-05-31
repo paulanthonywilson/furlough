@@ -55,6 +55,7 @@ defmodule Life do
   def alive_after_wait_for_death?(pid, count) do
     case Process.alive?(pid) do
       true ->
+        :timer.sleep(1)
         alive_after_wait_for_death?(pid, count - 1)
 
       _ ->
@@ -92,18 +93,33 @@ defmodule Life do
 end
 ```
 
-## Process.exit/2
+## Process.exit/2 (called from another process)
+
+(`Process.exit/2` is a [delegate for 
+`:erlang.exit/2`](https://github.com/elixir-lang/elixir/blob/v1.12.0/lib/elixir/lib/process.ex#L173))
 
 Arguably, the first killing method to spring to mind would be to call `Process.exit/2`. Here's a summary of what happens.
 
-| Trapping exits? | Reason                                        | Exits? | Message? | terminate/2 callback? | Error logged? |
-| --------------- | --------------------------------------------: | -----: | -------: | --------------------: | ------------: |
-| no              | `:normal`                                     | no     | no       | no                    | no            |
-| no              | `:normal` (but to itself)                     | yes    | no       | no                    | no            |
-| no              | any other reason                              | yes    | no       | no                    | no            |
-| yes             | `:normal`, `:shutdown`, `{:shutdown, reason}` | yes    | no       | yes                   | no            |
-| yes             | any non-special reason, eg `:other`           | yes    | no       | yes                   | yes           |
-| yes             | `:kill`                                       | yes    | no       | no                    | no            |
+| Trapping exits? | Reason                   | Exits? | Message? | terminate/2 callback? | Error logged? | GenServer.call/2 exit? |
+| --------------- | -----------------------: | -----: | -------: | --------------------: | ------------: | ---------------------: |
+| no              | `:normal`                | no     | no       | no                    | no            | n/a                    |
+| no              | any reason but `:normal` | yes    | no       | no                    | no            | n/a                    |
+| yes             | any reason but `:kill`   | no     | yes      | no                    | no            | n/a                    |
+| yes             | `:kill`                  | yes    | no       | no                    | no            | n/a                    |
+
+I use the same table structure throughout this post; in case it's not clear here are the longer meanings of the
+columns:
+
+* **Trapping exits?** - is the process trapping exits, having invoked `Process.flag(:trap_exit, true)`?
+* **Reason** - the exit reason, in this case the second argument to `Process.exit/2`
+* **Exits?** - does the process exit?
+* **Message?** - is a message sent to the process, in a `GenServer` handled by a callback to [`handle_info/2`](https://hexdocs.pm/elixir/1.12.0/GenServer.html#c:handle_info/2)
+* **terminate/2 callback?** - is the (optional) 
+  [`terminate/2`](https://hexdocs.pm/elixir/1.12.0/GenServer.html#c:terminate/2) callback called, if present.
+* **Error log** - does OTP (proclib) log an error due to the exit?
+* **GenServer.call/2 exit/** - This is only releveant when a process exits during a `GenServer.call/2`, when
+  OTP is monitoring the process - [`:erlang.exit/1` is called on
+  receipt of a `DOWN` message](https://github.com/erlang/otp/blob/OTP-22.0/lib/stdlib/src/gen.erl#L176-L177)
 
 It's worth noting that if you are relying on the `terminate/2` callback to clean up after your process then you 
 may have backed the wrong horse.
@@ -120,24 +136,60 @@ As documented in [Process.exit/2](https://hexdocs.pm/elixir/1.12.0/Process.html#
 signal will have no effect *unless* it is being sent to `self()`.
 
 ```elixir
-{:ok, l1} = Life.start()
-
-try do
-  Life.execute_in_process(l1, fn -> Process.exit(l1, :normal) end)
-catch
-  :exit, val ->
-    IO.inspect(val, label: :caught_exit)
+for reason <- [:other_reason, :shutdown, {:shutdown, "a reason"}, :kill] do
+  {:ok, l1} = Life.start()
+  Process.exit(l1, reason)
+  Process.alive?(l1)
 end
+```
 
+Calling `Process.exit/2` on a process, not trapping exits, with any other reason will cause it to exit without 
+logging any errors.
+
+```elixir
+{:ok, l1} = Life.start()
+Life.trap_exits(l1)
+Process.exit(l1, :normal)
 Process.alive?(l1)
 ```
 
-If a process indulges in sending `:normal` exit signals to itself, it will be killed with only itself to blame. 
-Note that as in this case the process exits during a `handle_call/3` the exit is be propagated by `GenServer.call/2`
-we need the `try/catch` above.
+Sending `:normal` exit signal to a process that is trapping exits still won't kill it but it will get the message,
+handled here by `handle_info/3`. (The message is a 3-part tuple: `:EXIT`, the pid of the sending process, and 
+the exit *reason*.)
 
 ```elixir
-for reason <- [:normal, :shutdown, {:shutdown, "something"}, :other_reason] do
+{:ok, l1} = Life.start()
+Life.trap_exits(l1)
+Process.exit(l1, :other_reason)
+Process.alive?(l1)
+```
+
+Of coure, the same thing will happen to a process trapping errors, with a different exit reason to `:normal` 
+(or `:kill`): a message is received, it does not exit, and nothing is logged.
+
+```elixir
+{:ok, l1} = Life.start()
+Life.trap_exits(l1)
+Process.exit(l1, :kill)
+Process.alive?(l1)
+```
+
+The `:kill` reason is untrappable.
+
+## Process.exit/2 called from the same process
+
+When a process calls `Process.exit(self(), reason)` then the behaviour varies from when calling 
+`Process.exit/2` on a different process.
+
+| Trapping exits? | Reason                                           | Exits? | Message? | terminate/2 callback? | Error logged? | Genserver.call/2 exits? |
+| --------------- | -----------------------------------------------: | -----: | -------: | --------------------: | ------------: | ----------------------: |
+| no              | any reason                                       | yes    | no       | no                    | no            | yes                     |
+| yes             | `:normal`, `:shutdown`, or `{:shutdown, reason}` | yes    | no       | yes                   | no            | no                      |
+| yes             | `:kill`                                          | yes    | no       | no                    | no            | yes                     |
+| yes             | any other reason                                 | yes    | no       | yes                   | yes           | no                      |
+
+```elixir
+for reason <- [:other_reason, :normal, :shutdown, {:shutdown, "a reason"}, :kill] do
   {:ok, l1} = Life.start()
 
   try do
@@ -151,19 +203,10 @@ for reason <- [:normal, :shutdown, {:shutdown, "something"}, :other_reason] do
 end
 ```
 
-Of course, `Process.exit/2`ing to the same process behaves in much the same way with other reasons other than 
-`:normal`. When we are not trapping exits, the exit is not logged.
-
-```elixir
-{:ok, l1} = Life.start()
-Life.trap_exits(l1)
-Process.exit(l1, :normal)
-Process.alive?(l1)
-```
-
-Sending `:normal` exit signal to a process that is trapping exits still won't kill it but it will get the message,
-handled here by `handle_info/3`. The message is a 3-part tuple: `:EXIT`, the pid of the sending process, and 
-the exit *reason*.
+If a process indulges in calling `Process.exit/2` on itself, with any reason, it will be killed 
+with only itself() to blame. Note that as in this case the process exits during a `handle_call/3` the exit is be propagated by `GenServer.call/2`
+and we need the `try/catch` above to continue processing. No error messages are logged and the `terminate/2`
+callback is not invoked.
 
 ```elixir
 for reason <- [:other_reason, :normal, :shutdown, {:shutdown, "a reason"}] do
@@ -182,16 +225,7 @@ end
 
 Should a process send an exit signal to itself, the process is trapping exits, and the reason is not `:kill` 
 (see below) then the process will exit *asynchronously* (after processing the current message) and the `terminate/2`
-callback will be invoked.
-
-```elixir
-{:ok, l1} = Life.start()
-Life.trap_exits(l1)
-Process.exit(l1, :kill)
-Process.alive?(l1)
-```
-
-The `:kill` reason is untrappable.
+callback will be invoked. An error will be logged unless the reason is `:normal`, `:shutdown`, or `{:shutdown, reson}`.
 
 ```elixir
 {:ok, l1} = Life.start()
@@ -215,17 +249,21 @@ processes in a late post.
 
 ## Kernel.exit/1
 
+(`Kernel.exit/1` is just a [call to 
+`:erlang.exit/1`](https://github.com/elixir-lang/elixir/blob/v1.12.0/lib/elixir/lib/kernel.ex#L508))
+
 From the [Elixir docs](https://hexdocs.pm/elixir/1.12.0/Kernel.html#exit/1)
 
 > Stops the execution of the calling process with the given reason.
 
 The documentation goes into the impact on linked processes, which I will go into in a later post. The behaviour
-does differ from `Process.exit(self(), reason)`.
+does differ from `Process.exit(self(), reason)` in that regardless of whether exits are being trapped, the 
+process will trigger a `terminate/2` callback, and `GenServer.call/2` will raise the exit to a calling process.
 
-| Trapping exits? | Reason                                        | Exits? | Message? | terminate/2 callback? | Error logged? |
-| --------------- | --------------------------------------------: | -----: | -------: | --------------------: | ------------: |
-| yes and no      | `:normal`, `:shutdown`, `{:shutdown, reason}` | yes    | no       | yes                   | no            |
-| yes and no      | other reasons, including `:kill`              | yes    | no       | yes                   | yes           |
+| Trapping exits? | Reason                                        | Exits? | Message? | terminate/2 callback? | Error logged? | GenServer.call/2 exit? |
+| --------------- | --------------------------------------------: | -----: | -------: | --------------------: | ------------: | ---------------------: |
+| yes and no      | `:normal`, `:shutdown`, `{:shutdown, reason}` | yes    | no       | yes                   | no            | yes                    |
+| yes and no      | other reasons, including `:kill`              | yes    | no       | yes                   | yes           | yes                    |
 
 ```elixir
 for reason <- [:normal, :shutdown, {:shutdown, "something"}, :other_reason, :kill] do
@@ -269,10 +307,10 @@ Trapping exits has no impact on `exit/1`; the behaviour the same as when the pro
 To me, returning `{:stop, reason, state}` or `{:stop, reason, reply, state}` from a message handlign callback
 feels like the usual way to terminate a `GenServer`.
 
-| Trapping exits? | Reason                                        | Exits? | Message? | terminate/2 callback? | Error logged? |
-| --------------- | --------------------------------------------: | -----: | -------: | --------------------: | ------------: |
-| yes and no      | `:normal`, `:shutdown`, `{:shutdown, reason}` | yes    | no       | yes                   | no            |
-| yes and no      | other reasons, including `:kill`              | yes    | no       | yes                   | yes           |
+| Trapping exits? | Reason                                        | Exits? | Message? | terminate/2 callback? | Error logged? | GenServer.call/2 exit? |
+| --------------- | --------------------------------------------: | -----: | -------: | --------------------: | ------------: | ---------------------: |
+| yes and no      | `:normal`, `:shutdown`, `{:shutdown, reason}` | yes    | no       | yes                   | no            | no                     |
+| yes and no      | other reasons, including `:kill`              | yes    | no       | yes                   | yes           | no                     |
 
 As I also mention below, the behaviour is the same as `exit/1` except that the exit is not propagated to a process
 invoking `GenServer.call/2`.
@@ -317,9 +355,9 @@ messaging callback.
 
 Errors kill processes in much the same way as `Kernel.exit/1`.
 
-| Trapping exits? | Reason | Exits? | Message? | terminate/2 callback? | Error logged? |
-| --------------- | -----: | -----: | -------: | --------------------: | ------------: |
-| yes and no      | n/a    | yes    | no       | yes                   | yes           |
+| Trapping exits? | Reason | Exits? | Message? | terminate/2 callback? | Error logged? | GenServer.call/2 exit? |
+| --------------- | -----: | -----: | -------: | --------------------: | ------------: | ---------------------: |
+| yes and no      | n/a    | yes    | no       | yes                   | yes           | yes                    |
 
 ```elixir
 {:ok, l1} = Life.start()
