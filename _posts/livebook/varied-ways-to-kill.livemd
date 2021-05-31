@@ -1,0 +1,368 @@
+# The many and varied ways to kill an OTP Process
+
+## Summary
+
+When you come to think about it, there's lots of different ways to kill an OTP process. Each has its own subleties
+in what behaviour is displayed, even without bringing in the impact on linked processes which is a topic for a 
+later post.
+
+This post is largely notes for myself in what to expect when a process is terminated in a particular way, as
+I can't find this all documented in one place.
+
+It is written as an executable [LiveBook](https://github.com/elixir-nx/livebook). Instructions 
+**will be added here
+once posted and I've figured them out**.
+
+## A GenServer for the experiments
+
+This is the GenServer we will kill in all the different ways.
+
+```elixir
+defmodule Life do
+  use GenServer
+
+  def start do
+    GenServer.start(__MODULE__, {})
+  end
+
+  def init(_) do
+    {:ok, %{}}
+  end
+
+  def trapping_exits?(pid) do
+    with {:trap_exit, val} <- Process.info(pid, :trap_exit), do: val
+  end
+
+  def trap_exits(server) do
+    :ok = GenServer.call(server, :trap_exits)
+  end
+
+  def stop_trapping_exit(server) do
+    :ok = GenServer.call(server, :stop_trapping_exits)
+  end
+
+  def stop(server, reason) do
+    :ok = GenServer.call(server, {:stop, reason})
+  end
+
+  def execute_in_process(server, execute_me) do
+    GenServer.call(server, {:execute, execute_me})
+  end
+
+  def alive_after_wait_for_death?(pid, count \\ 50)
+  def alive_after_wait_for_death?(pid, 0), do: Process.alive?(pid)
+
+  def alive_after_wait_for_death?(pid, count) do
+    case Process.alive?(pid) do
+      true ->
+        alive_after_wait_for_death?(pid, count - 1)
+
+      _ ->
+        false
+    end
+  end
+
+  def handle_call({:execute, execute_me}, _, s) do
+    result = execute_me.()
+    {:reply, result, s}
+  end
+
+  def handle_call(:trap_exits, _, s) do
+    Process.flag(:trap_exit, true)
+    {:reply, :ok, s}
+  end
+
+  def handle_call(:stop_trapping_exits, _, s) do
+    Process.flag(:trap_exit, false)
+    {:reply, :ok, s}
+  end
+
+  def handle_call({:stop, reason}, _, s) do
+    {:stop, reason, :ok, s}
+  end
+
+  def handle_info(event, s) do
+    IO.inspect({self(), event}, label: :handle_info)
+    {:noreply, s}
+  end
+
+  def terminate(reason, _s) do
+    IO.inspect({self(), reason}, label: :terminate)
+  end
+end
+```
+
+## Process.exit/2
+
+Arguably, the first killing method to spring to mind would be to call `Process.exit/2`. Here's a summary of what happens.
+
+| Trapping exits? | Reason                                        | Exits? | Message? | terminate/2 callback? | Error logged? |
+| --------------- | --------------------------------------------: | -----: | -------: | --------------------: | ------------: |
+| no              | `:normal`                                     | no     | no       | no                    | no            |
+| no              | `:normal` (but to itself)                     | yes    | no       | no                    | no            |
+| no              | any other reason                              | yes    | no       | no                    | no            |
+| yes             | `:normal`, `:shutdown`, `{:shutdown, reason}` | yes    | no       | yes                   | no            |
+| yes             | any non-special reason, eg `:other`           | yes    | no       | yes                   | yes           |
+| yes             | `:kill`                                       | yes    | no       | no                    | no            |
+
+It's worth noting that if you are relying on the `terminate/2` callback to clean up after your process then you 
+may have backed the wrong horse.
+
+And now for the code illustrating the summary:
+
+```elixir
+{:ok, l1} = Life.start()
+Process.exit(l1, :normal)
+Process.alive?(l1)
+```
+
+As documented in [Process.exit/2](https://hexdocs.pm/elixir/1.12.0/Process.html#exit/2), sending a `:normal` exit
+signal will have no effect *unless* it is being sent to `self()`.
+
+```elixir
+{:ok, l1} = Life.start()
+
+try do
+  Life.execute_in_process(l1, fn -> Process.exit(l1, :normal) end)
+catch
+  :exit, val ->
+    IO.inspect(val, label: :caught_exit)
+end
+
+Process.alive?(l1)
+```
+
+If a process indulges in sending `:normal` exit signals to itself, it will be killed with only itself to blame. 
+Note that as in this case the process exits during a `handle_call/3` the exit is be propagated by `GenServer.call/2`
+we need the `try/catch` above.
+
+```elixir
+for reason <- [:normal, :shutdown, {:shutdown, "something"}, :other_reason] do
+  {:ok, l1} = Life.start()
+
+  try do
+    Life.execute_in_process(l1, fn -> Process.exit(l1, reason) end)
+  catch
+    :exit, val ->
+      IO.inspect(val, label: :caught_exit)
+  end
+
+  Process.alive?(l1)
+end
+```
+
+Of course, `Process.exit/2`ing to the same process behaves in much the same way with other reasons other than 
+`:normal`. When we are not trapping exits, the exit is not logged.
+
+```elixir
+{:ok, l1} = Life.start()
+Life.trap_exits(l1)
+Process.exit(l1, :normal)
+Process.alive?(l1)
+```
+
+Sending `:normal` exit signal to a process that is trapping exits still won't kill it but it will get the message,
+handled here by `handle_info/3`. The message is a 3-part tuple: `:EXIT`, the pid of the sending process, and 
+the exit *reason*.
+
+```elixir
+for reason <- [:other_reason, :normal, :shutdown, {:shutdown, "a reason"}] do
+  {:ok, l1} = Life.start()
+  Life.trap_exits(l1)
+
+  :okey_dokey =
+    Life.execute_in_process(l1, fn ->
+      Process.exit(l1, reason)
+      :okey_dokey
+    end)
+
+  Life.alive_after_wait_for_death?(l1)
+end
+```
+
+Should a process send an exit signal to itself, the process is trapping exits, and the reason is not `:kill` 
+(see below) then the process will exit *asynchronously* (after processing the current message) and the `terminate/2`
+callback will be invoked.
+
+```elixir
+{:ok, l1} = Life.start()
+Life.trap_exits(l1)
+Process.exit(l1, :kill)
+Process.alive?(l1)
+```
+
+The `:kill` reason is untrappable.
+
+```elixir
+{:ok, l1} = Life.start()
+Life.trap_exits(l1)
+
+try do
+  Life.execute_in_process(l1, fn -> Process.exit(l1, :kill) end)
+catch
+  :exit, val ->
+    IO.inspect(val, label: :caught_exit)
+end
+
+Process.alive?(l1)
+```
+
+If the process is sending `:kill` to itself, it makes no difference if the process is trapping exits. It is
+terminated immediately with no callbacks to `terminate/2`.
+
+Note that the (caught) exit reason is `:killed` not `:kill`; this is significant when we come to look at linked
+processes in a late post.
+
+## Kernel.exit/1
+
+From the [Elixir docs](https://hexdocs.pm/elixir/1.12.0/Kernel.html#exit/1)
+
+> Stops the execution of the calling process with the given reason.
+
+The documentation goes into the impact on linked processes, which I will go into in a later post. The behaviour
+does differ from `Process.exit(self(), reason)`.
+
+| Trapping exits? | Reason                                        | Exits? | Message? | terminate/2 callback? | Error logged? |
+| --------------- | --------------------------------------------: | -----: | -------: | --------------------: | ------------: |
+| yes and no      | `:normal`, `:shutdown`, `{:shutdown, reason}` | yes    | no       | yes                   | no            |
+| yes and no      | other reasons, including `:kill`              | yes    | no       | yes                   | yes           |
+
+```elixir
+for reason <- [:normal, :shutdown, {:shutdown, "something"}, :other_reason, :kill] do
+  {:ok, l1} = Life.start()
+
+  try do
+    Life.execute_in_process(l1, fn -> exit(reason) end)
+  catch
+    :exit, val ->
+      IO.inspect(val, label: :caught_exit)
+  end
+
+  Process.alive?(l1)
+end
+```
+
+`exit/1` terminates the process synchronously. The `terminate/2` callback is called, even if the exit reason is`:kill`.
+
+An exit will be logged unless the reason is one of `:normal`, `:shutdown`, or `{:shutdown, reason}`.
+
+```elixir
+for reason <- [:normal, :shutdown, {:shutdown, "something"}, :other_reason, :kill] do
+  {:ok, l1} = Life.start()
+  Life.trap_exits(l1)
+
+  try do
+    Life.execute_in_process(l1, fn -> exit(reason) end)
+  catch
+    :exit, val ->
+      IO.inspect(val, label: :caught_exit)
+  end
+
+  Process.alive?(l1)
+end
+```
+
+Trapping exits has no impact on `exit/1`; the behaviour the same as when the process is not trapping exits.
+
+## Returning :stop from a message callback
+
+To me, returning `{:stop, reason, state}` or `{:stop, reason, reply, state}` from a message handlign callback
+feels like the usual way to terminate a `GenServer`.
+
+| Trapping exits? | Reason                                        | Exits? | Message? | terminate/2 callback? | Error logged? |
+| --------------- | --------------------------------------------: | -----: | -------: | --------------------: | ------------: |
+| yes and no      | `:normal`, `:shutdown`, `{:shutdown, reason}` | yes    | no       | yes                   | no            |
+| yes and no      | other reasons, including `:kill`              | yes    | no       | yes                   | yes           |
+
+As I also mention below, the behaviour is the same as `exit/1` except that the exit is not propagated to a process
+invoking `GenServer.call/2`.
+
+```elixir
+for reason <- [:normal, :shutdown, {:shutdown, "something"}, :other_reason, :kill] do
+  {:ok, l1} = Life.start()
+  Life.stop(l1, reason)
+  Process.alive?(l1)
+end
+```
+
+```elixir
+for reason <- [:normal, :shutdown, {:shutdown, "something"}, :other_reason, :kill] do
+  {:ok, l1} = Life.start()
+  Life.trap_exits(l1)
+  Life.stop(l1, reason)
+  Process.alive?(l1)
+end
+```
+
+Returning a `:stop` from messaging callback behaves pretty much like `exit/1`: `terminate/2` is called (if present);
+it always exits'; errors are not logged for `:normal`, `:shutdown`, and `{:shutdown, reason}` reasons; errors are 
+logged for other reasons.
+
+One difference with `exit/1` is that the exit is not raised over a `GenServer.call/2`.
+
+## GenServer.stop/2
+
+```elixir
+for reason <- [:normal, :shutdown, {:shutdown, "something"}, :other_reason, :kill] do
+  {:ok, l1} = Life.start()
+  GenServer.stop(l1, reason)
+  Process.alive?(l1)
+end
+```
+
+Stopping a process with `GenServer.stop/2` has exactly the same behaviour as returning a `:stop` from a 
+messaging callback.
+
+## Exception  / errors
+
+Errors kill processes in much the same way as `Kernel.exit/1`.
+
+| Trapping exits? | Reason | Exits? | Message? | terminate/2 callback? | Error logged? |
+| --------------- | -----: | -----: | -------: | --------------------: | ------------: |
+| yes and no      | n/a    | yes    | no       | yes                   | yes           |
+
+```elixir
+{:ok, l1} = Life.start()
+
+try do
+  Life.execute_in_process(l1, fn -> raise "hell" end)
+catch
+  :exit, reason ->
+    IO.inspect(reason, label: :caught_exit)
+end
+
+Process.alive?(l1)
+```
+
+One difference between exiting with a raised exception/error and `Kernel.exit/1` is the propagated message, 
+raised by `GenServer.call/2` but also sent to linked and monitoring processes, includes a stack trace. In Learn You
+Some Erlang, Fred Hébert [explains that this is extra overhead as the stack trace needs to be copied to each 
+receiving process](https://learnyousomeerlang.com/errors-and-processes). Unless your processes are raising
+exceptions all over the place I doubt this will have much impact; also you clearly would have other problems.
+
+```elixir
+return_val = fn x -> x end
+{:ok, l1} = Life.start()
+
+try do
+  Life.trap_exits(l1)
+  Life.execute_in_process(l1, fn -> :ok = return_val.(:not_ok) end)
+catch
+  :exit, reason ->
+    IO.inspect(reason, label: :caught_exit)
+end
+
+Process.alive?(l1)
+```
+
+As you would expect, there is no difference between explicitly raising an exception and one arising "naturally"
+through programmer "error", as above.
+
+## Next...
+
+I am not sure how helpful this is to others but it has clarified some areas that were a bit fuzzy to me, and I have
+a quick reference for next time I can't remember exactly what to expect when a process dies. It has been 
+interesting to write this as a Live Book, though challenging to publish on a blog.
+
+There is an important part missing, which is the impact of an exit on linked processes. 
+I will write something about that soon.
