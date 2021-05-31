@@ -9,9 +9,17 @@ later post.
 This post is largely notes for myself in what to expect when a process is terminated in a particular way, as
 I can't find this all documented in one place.
 
-It is written as an executable [LiveBook](https://github.com/elixir-nx/livebook). Instructions 
-**will be added here
-once posted and I've figured them out**.
+## Executing as LiveBook
+
+This post is written as an executable [LiveBook](https://github.com/elixir-nx/livebook). You can execute it
+
+1. By 
+   installing LiveBook following the instructions here: [https://github.com/elixir-nx/livebook#escript.](https://github.com/elixir-nx/livebook#escript.)
+2. Downloading the live markdown from [here](https://github.com/paulanthonywilson/furlough/blob/master/_posts/livebook/varied-ways-to-kill.livemd)
+3. Run `livebook server` and open the 'varied-ways-to-kill.livemd' file you have downloaded.
+
+As an alternative to step 2, you could clone [this blog](https://github.com/paulanthonywilson/furlough) to your 
+local machine and from the root run `./bin/live-blog`; then open 'varied-ways-to-kill.livemd'
 
 ## A GenServer for the experiments
 
@@ -120,6 +128,7 @@ columns:
 * **GenServer.call/2 exit/** - This is only releveant when a process exits during a `GenServer.call/2`, when
   OTP is monitoring the process - [`:erlang.exit/1` is called on
   receipt of a `DOWN` message](https://github.com/erlang/otp/blob/OTP-22.0/lib/stdlib/src/gen.erl#L176-L177)
+  before the reply message is received.
 
 It's worth noting that if you are relying on the `terminate/2` callback to clean up after your process then you 
 may have backed the wrong horse.
