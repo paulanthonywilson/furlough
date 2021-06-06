@@ -112,7 +112,7 @@ We will add a few more tests to better define and stablise the behaviour.
 
 ## Expiry???
 
-Now let's make the entries expire ... 
+Now let's make the entries expire ...
 
 ```elixir
   test "values in the expiring_registry expire", %{
@@ -145,7 +145,7 @@ First let's refactor[^2] to store the entries in a `Registry`, rather than a `Ma
   end
 ```
 
-We are creating a unique name for the registry per test, ortherwise we get intermittent name clashes when one test starts before a previous test's registry has completed shutdown. There are alternatives, like starting a registry in `test_helper.exs` but I would prefer to keep everything together. 
+We are creating a unique name for the registry per test, ortherwise we get intermittent name clashes when one test starts before a previous test's registry has completed shutdown. There are alternatives, like starting a registry in `test_helper.exs` but I would prefer to keep everything together.
 
 The changes to the production code are a bit more radical.
 
@@ -165,10 +165,10 @@ defmodule Multicasting.ExpiringRegistry do
 
 ```
 
-... 
+...
 
 {% raw %}
-```elixir 
+```elixir
 
   def handle_call(:registrations, _from, %{registry_name: registry_name} = state) do
     registrations =
@@ -214,7 +214,7 @@ We have now changed the underlying implementation and are tests still pass. Now 
   end
 ```
 
-While the `:sys.get_state/1` call looks a bit odd; it's a handy trick for ensuring the the `GenServer.cast/2` on the target has been completed before executing the next test instructions; as `:sys/get_state/1` is like `GenServer.call/2` in that it blocks until the message to the process has completed processing, it ensures the messages ahead of it in the queue have completed before returning. 
+While the `:sys.get_state/1` call looks a bit odd; it's a handy trick for ensuring the the `GenServer.cast/2` on the target has been completed before executing the next test instructions; as `:sys/get_state/1` is like `GenServer.call/2` in that it blocks until the message to the process has completed processing, it ensures the messages ahead of it in the queue have completed before returning.
 
 `Registry.lookup/2` returns a list of tuples of items stored against the key[^3]. The first element in the tuple is the registering process, and the second is the value.
 
@@ -288,13 +288,13 @@ end
 To start this we are going to want to add a dynamic supervisor to our supervsion tree
 
 ```elixir
-  # in Multicasting.Application 
+  # in Multicasting.Application
   def start(_type, _args) do
     children = [
       Multicasting.BroadcasterReceiverSupervisor,
       {DynamicSupervisor, strategy: :one_for_one, name: Multicasting.DynamicSupervisor}
     ]
- 
+
     opts = [strategy: :one_for_one, name: Multicasting.Supervisor]
     Supervisor.start_link(children, opts)
   end
@@ -385,6 +385,7 @@ Aside: tests that are passing because of a mistake in the test code happen fairl
 
 Now let's remove the skip tag and ... it go boom, of course.
 
+{% raw %}
 ```
   1) test value for same key is updated (Multicasting.ExpiringRegistryTest)
      test/multicasting/expiring_registry_test.exs:19
@@ -392,6 +393,7 @@ Now let's remove the skip tag and ... it go boom, of course.
          ** (MatchError) no match of right hand side value: {:error, {{:badmatch, {:error, {:already_registered, #PID<0.176.0>}}}
          ...
 ```
+{% endraw %}
 
 But we can fix that.
 
@@ -413,7 +415,7 @@ But we can fix that.
   end
 ```
 
-```elixir 
+```elixir
   # in Multicasting.ExpiringRegistryEntry
 
   def update(pid, value) do
@@ -633,7 +635,7 @@ Try shutting down the peers, and waiting 35 seconds. The registrations should di
 
 An Elixir Forum thread for this post is [here](https://elixirforum.com/t/elixir-blog-post-test-driving-otp-creating-a-registry-with-expiring-entries/38278), for questions or criticism.
 
---- 
+---
 
 [^1]: pandemic reference not intended
 [^2]: as in changing code, without affecting its behaviour
