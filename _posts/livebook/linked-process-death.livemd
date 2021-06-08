@@ -12,6 +12,19 @@ see what happens when a linked process dies. The tl;dr is in the table below.
 | no              | any reason other than `:normal` | no                     | yes    |
 | yes             | any reason including `:normal`  | yes                    | no     |
 
+This page can be downloaded as a LiveBook for execution. The raw markdown is [here](https://raw.githubusercontent.com/paulanthonywilson/furlough/master/_posts/livebook/linked-process-death.livemd),
+or you can follow the [previous instructions](https://furlough.merecomplexities.com/elixir/otp/2021/05/31/the-many-and-varied-ways-to-kill-an-otp-process.html#executing-as-livebook)
+for cloning the blog and executing the LiveBook pages.
+
+When the final value of a snippet is significant I have matched against it to make the output clearer when 
+reading the blog rather than executing the page. eg
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+true = Linky.alive_after_wait_for_death?(l1)
+```
+
 ## A GenServer for the experiments
 
 ```elixir
@@ -67,6 +80,8 @@ defmodule Linky do
 end
 ```
 
+The GenServer above is used in the illustrative code that follows.
+
 ## Linked process exits with :normal reason
 
 I've read in more than one place, that linking two processes ties their lifecycle together, so that one dies 
@@ -80,7 +95,7 @@ Linky.link(l1, l2)
 
 GenServer.stop(l2, :normal)
 
-Linky.alive_after_wait_for_death?(l1)
+true = Linky.alive_after_wait_for_death?(l1)
 ```
 
 When we execute the above code, we discover that when a linked process exits with a `:normal` reason then the
@@ -114,7 +129,7 @@ Linky.trap_exits(l1)
 
 Process.exit(l2, :kill)
 
-Linky.alive_after_wait_for_death?(l1)
+true = Linky.alive_after_wait_for_death?(l1)
 ```
 
 Interestingly the reason received by the linked process is `:killed` not `:kill`, which would of course be
@@ -130,7 +145,7 @@ Linky.trap_exits(l1)
 
 GenServer.stop(l2, :kill)
 
-Linky.alive_after_wait_for_death?(l1)
+true = Linky.alive_after_wait_for_death?(l1)
 ```
 
 It would be an explanation for `kill`s not cascading, except it is perfectly possible, as above, for a process to 
@@ -145,7 +160,7 @@ Linky.link(l1, l2)
 
 Process.exit(l2, :kill)
 
-Linky.alive_after_wait_for_death?(l1)
+false = Linky.alive_after_wait_for_death?(l1)
 ```
 
 Of course if we are not trapping exits and a linked process is kiled, then the other processes also dies.
@@ -160,7 +175,7 @@ Linky.link(l1, l2)
 
 GenServer.stop(l2, :whatever)
 
-Linky.alive_after_wait_for_death?(l1)
+false = Linky.alive_after_wait_for_death?(l1)
 ```
 
 For completeness, the above code shows that if you are not trapping exits then linked processes will exit when
@@ -187,7 +202,7 @@ Linky.trap_exits(l1)
 
 send(spawny, :bye)
 
-for pid <- [l1, l2], do: Linky.alive_after_wait_for_death?(pid)
+[true, true] = for pid <- [l1, l2], do: Linky.alive_after_wait_for_death?(pid)
 ```
 
 When any process's function returns normally, then the process exits with the `:normal` reason. Linked processes
