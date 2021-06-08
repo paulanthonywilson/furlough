@@ -5,6 +5,9 @@ date: 2020-06-18 11:37:39 +0100
 author: Paul Wilson
 categories: log elixir liveview
 ---
+**Updates**
+  2021-06-08. A public service update to only create the debouncer on the second call to mount,
+  when the socket connects, to avoid a process leak.
 
 ## tl;dr tips and tricks:
 
@@ -23,7 +26,7 @@ Instead of spending another while on the deployment, though, I worked on somethi
 
 ## Correct Horse Battery Staple - Elixir Edition
 
-This time the front end is in [Phoenix Live View](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html) and rather than a database, the pool of words is stored in an [ETS table](https://elixir-lang.org/getting-started/mix-otp/ets.html). I'm using an [Umbrella App](https://elixir-lang.org/getting-started/mix-otp/dependencies-and-umbrella-projects.html) because I am fond of making separate concerns really obvious. I find it helps clarify the separations. The app was created with 
+This time the front end is in [Phoenix Live View](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html) and rather than a database, the pool of words is stored in an [ETS table](https://elixir-lang.org/getting-started/mix-otp/ets.html). I'm using an [Umbrella App](https://elixir-lang.org/getting-started/mix-otp/dependencies-and-umbrella-projects.html) because I am fond of making separate concerns really obvious. I find it helps clarify the separations. The app was created with
 
 ```bash
 mix phx.new correcthorse --live --umbrella --no-ecto
@@ -100,19 +103,13 @@ We can create a little [debouncing _Genserver_](https://github.com/paulanthonywi
 
 ```elixir
 def mount(_params, _session, socket) do
-  {:ok, debouncer} = Debouncer.start_link(self(), 500)
+  socket = if connected?(socket) do
+    {:ok, debouncer} = Debouncer.start_link(self(), 500)
+    assign(socket, _debouncer: debouncer)
+  else
+    socket
+  end
 
-  socket =
-    assign(socket,
-      min_words: @default_min_words,
-      min_chars: min_chars_from_min_words(@default_min_words),
-      separator: "-",
-      capitalise: :none,
-      append: [],
-      password: "",
-      wordlist: [],
-      _debouncer: debouncer
-    )
 ```
 
 Then when we get notification of a range update we let the _debouncer_ know, by calling `bounce/2` with the _pid_ and `generate_new_password`, as well as updating the range values.
@@ -167,7 +164,7 @@ def handle_info(message, s = %{timeout: timeout}) do
 end
 ```
 
-When `bounce` is called then this sends a message to the _bouncer_. When the message is handled, the *last_message* is saved to the state and the `timeout` is returned as the third element in the tuple. The `:timeout` message is received unless another `bounce/2` occurs within the timeout period. 
+When `bounce` is called then this sends a message to the _bouncer_. When the message is handled, the *last_message* is saved to the state and the `timeout` is returned as the third element in the tuple. The `:timeout` message is received unless another `bounce/2` occurs within the timeout period.
 
 While handling the timeout we send the *last_message* (`:generate_new_password`) back to our _LiveView_.
 
@@ -200,6 +197,9 @@ Possibly:
 * Deploying by user [Packer](https://www.packer.io) to build a custom AMI that include the release (and possibly ssl certificates).
 * A package to generating the release scripts and Terraform etc .. for quick start project deployment.
 * Something with [Nerves](https://www.nerves-project.org) which I haven't used for a while, and miss.
+
+
+
 
 
 

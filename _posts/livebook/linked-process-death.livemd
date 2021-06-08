@@ -1,0 +1,242 @@
+# What happens when a linked process dies
+
+## Summary
+
+[Previously](https://furlough.merecomplexities.com/elixir/otp/2021/05/31/the-many-and-varied-ways-to-kill-an-otp-process.html)
+we looked at different ways we can kill (or attempt to kill) a process and what happens in each case. Now let's 
+see what happens when a linked process dies. The tl;dr is in the table below.
+
+| Trapping exits? | Reason for linked process exit  | Exit message received? | Exits? |
+| --------------- | ------------------------------- | ---------------------- | ------ |
+| no              | `:normal`                       | no                     | no     |
+| no              | any reason other than `:normal` | no                     | yes    |
+| yes             | any reason including `:normal`  | yes                    | no     |
+
+## A GenServer for the experiments
+
+```elixir
+defmodule Linky do
+  use GenServer
+
+  def start do
+    GenServer.start(__MODULE__, {})
+  end
+
+  def init(_), do: {:ok, %{}}
+
+  def link(server, other) do
+    :ok = GenServer.call(server, {:link, other})
+  end
+
+  def trap_exits(server) do
+    :ok = GenServer.call(server, :trap_exits)
+  end
+
+  def alive_after_wait_for_death?(pid, count \\ 50)
+  def alive_after_wait_for_death?(pid, 0), do: Process.alive?(pid)
+
+  def alive_after_wait_for_death?(pid, count) do
+    case Process.alive?(pid) do
+      true ->
+        :timer.sleep(1)
+        alive_after_wait_for_death?(pid, count - 1)
+
+      _ ->
+        false
+    end
+  end
+
+  def handle_call({:link, other}, _, s) do
+    Process.link(other)
+    {:reply, :ok, s}
+  end
+
+  def handle_call(:trap_exits, _, s) do
+    Process.flag(:trap_exit, true)
+    {:reply, :ok, s}
+  end
+
+  def handle_info(event, s) do
+    IO.inspect({self(), event}, label: :handle_info)
+    {:noreply, s}
+  end
+
+  def terminate(reason, _s) do
+    IO.inspect({self(), reason}, label: :terminate)
+  end
+end
+```
+
+## Linked process exits with :normal reason
+
+I've read in more than one place, that linking two processes ties their lifecycle together, so that one dies 
+the other pops off too. This is not the full story.
+
+```elixir
+{:ok, l1} = Linky.start()
+{:ok, l2} = Linky.start()
+
+Linky.link(l1, l2)
+
+GenServer.stop(l2, :normal)
+
+Linky.alive_after_wait_for_death?(l1)
+```
+
+When we execute the above code, we discover that when a linked process exits with a `:normal` reason then the
+other process does not die.
+
+```elixir
+{:ok, l1} = Linky.start()
+{:ok, l2} = Linky.start()
+
+Linky.link(l1, l2)
+Linky.trap_exits(l1)
+
+GenServer.stop(l2, :normal)
+```
+
+We still get a message from a linked process's `:normal` exit (eg `{:EXIT, #PID<0.136.0>, :normal}`) when we are 
+trapping exits. In fact, with one exception, given linked procceses l1 and l2, when l1 experiences l2's exit
+exactly as if l2 had called `Process.exit/2` on `l1` with its exit reason.
+
+## Linked processes that exit by a :kill
+
+Remember that `:kill` is an untrappable exit when calling `Process.exit/2`? Its untrappability does not cascade
+to linked processes.
+
+```elixir
+{:ok, l1} = Linky.start()
+{:ok, l2} = Linky.start()
+
+Linky.link(l1, l2)
+Linky.trap_exits(l1)
+
+Process.exit(l2, :kill)
+
+Linky.alive_after_wait_for_death?(l1)
+```
+
+Interestingly the reason received by the linked process is `:killed` not `:kill`, which would of course be
+trappable if sent via `Process.exit/2`. That is one explanation for `:kill`s not cascasding through linked 
+processes.
+
+```elixir
+{:ok, l1} = Linky.start()
+{:ok, l2} = Linky.start()
+
+Linky.link(l1, l2)
+Linky.trap_exits(l1)
+
+GenServer.stop(l2, :kill)
+
+Linky.alive_after_wait_for_death?(l1)
+```
+
+It would be an explanation for `kill`s not cascading, except it is perfectly possible, as above, for a process to 
+exit with a reason`:kill`, and have the signal `:kill` trapped by a linked process.
+(Possible, but it would be an curious thing to actually do in production code.)
+
+```elixir
+{:ok, l1} = Linky.start()
+{:ok, l2} = Linky.start()
+
+Linky.link(l1, l2)
+
+Process.exit(l2, :kill)
+
+Linky.alive_after_wait_for_death?(l1)
+```
+
+Of course if we are not trapping exits and a linked process is kiled, then the other processes also dies.
+
+## Linked processes exiting with other reasons
+
+```elixir
+{:ok, l1} = Linky.start()
+{:ok, l2} = Linky.start()
+
+Linky.link(l1, l2)
+
+GenServer.stop(l2, :whatever)
+
+Linky.alive_after_wait_for_death?(l1)
+```
+
+For completeness, the above code shows that if you are not trapping exits then linked processes will exit when
+the other exits, as long as the reason is not `:normal`.
+
+## Linked (non GenServer / OTP) processes that simply exit
+
+```elixir
+{:ok, l1} = Linky.start()
+{:ok, l2} = Linky.start()
+
+spawny =
+  spawn(fn ->
+    receive do
+      :bye ->
+        IO.puts("Goodbye sweet world 😿")
+    end
+  end)
+
+Linky.link(l1, spawny)
+Linky.link(l2, spawny)
+
+Linky.trap_exits(l1)
+
+send(spawny, :bye)
+
+for pid <- [l1, l2], do: Linky.alive_after_wait_for_death?(pid)
+```
+
+When any process's function returns normally, then the process exits with the `:normal` reason. Linked processes
+behave accordingly: they receive a `:normal` exit notification from the Linked process if they are trapping exits; 
+even if they are not trapping exits, they do not exit. This is why it's safe, for instance, to start a task with 
+`Task.start_link/1` or `spawn_link/1`.
+
+## A silly mistake I made that resulted in a process leak
+
+For [reasons](https://furlough.merecomplexities.com/log/elixir/liveview/2020/06/18/memorable-password-generation-with-liveview.html#hand-rolled-debouncing)
+I created a helper process for a [LiveView](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html) page in 
+the [`mount/3` callback](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html#c:mount/3). I wrote something like
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+def mount(_params, _session, socket) do
+  {:ok, debouncer} = Debouncer.start_link(self(), 500)
+  {:noreply, assign(socket, debouncer: debouncer)}
+end
+```
+
+You can see the problem here, right? Yes, `mount/3` is called twice: once when the initial html is rendered a
+and again when the socket connects, so an extra `Debouncer` is started.
+
+This would be a waste of cpu cycles, but 
+no more, except that the initial rendering call is initiated by a [Cowboy process](https://github.com/ninenines/cowboy/blob/e12d7bbe2151ee727d4cd63eb5df649da9b9effa/src/cowboy_stream_h.erl)
+that exits with a `:normal` reason. The `Debouncer` process does not exit, but stays orphaned and taking up 
+resources.
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+def mount(_params, _session, socket) do
+  if connected?(socket) do
+    {:ok, debouncer} = Debouncer.start_link(self(), 500)
+    {:noreply, assign(socket, debouncer: debouncer)}
+  else
+    {:noreply, socket}
+  end
+end
+```
+
+The above `mount/3` does not leak processes, as the LiveView's [socket process](https://github.com/phoenixframework/phoenix_live_view/blob/0925b0b434f07b8ea17cfb5e219b80bb162026aa/lib/phoenix_live_view/channel.ex)
+exits with `{:shutdown, reason}`, eg `{:shutdown, :closed}`, causing the linked `Debouncer` to also exit. It 
+would be even safer, and proof against LiveView changes, to trap exits in Debouncer and voluntarily exit with a
+`:stop` return on the callback; I may do just that.
+
+I thought about adding this story at the beginning of the post, but I thought it might make it like one of those
+cooking articles that people complain about - the ones where you have to scroll though paragraphs of prose 
+before getting to the actual recipe. (Also it doesn't reflect well on me and people might get bored before reading
+this far.)

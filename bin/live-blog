@@ -2,7 +2,10 @@
 
 set -e
 
+BLOG_ROOT=`dirname $0`/..
+cd $BLOG_ROOT
 
-ROOT_PATH=`dirname $0`/../_posts/livebook
+
+ROOT_PATH=_posts/livebook
 
 livebook server --root-path=$ROOT_PATH
