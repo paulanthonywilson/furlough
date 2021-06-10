@@ -18,7 +18,7 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: The furlough log of Paul Wilson
+title: The log of Paul Wilson
 email: pwjobs@merecomplexities.com
 description: >- # this means to ignore newlines until "baseurl:"
   Furlough: a log on the web. I'm taking the opportunity to catch up on learning
