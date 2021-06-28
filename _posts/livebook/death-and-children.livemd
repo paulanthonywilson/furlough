@@ -1,0 +1,177 @@
+# Death, children, and OTP
+
+## Summary
+
+Previously in this (what has become a) series of posts we have looked at [how an OTP process 
+behaves when we try and kill it](https://furlough.merecomplexities.com/elixir/otp/2021/05/31/the-many-and-varied-ways-to-kill-an-otp-process.html) 
+and [what happens to an OTP process when a linked process dies](https://furlough.merecomplexities.com/elixir/otp/2021/06/08/what-happens-when-a-linked-process-dies.html).
+
+In an [Elixir Form thread](https://elixirforum.com/t/elixir-blog-post-the-many-and-varied-ways-to-kill-an-otp-process/40135)
+a forum member, [The Wild Goose](https://elixirforum.com/u/the_wildgoose/), pointed out that there was special 
+behaviour when a the exit signal is received from a processes parent. I was sceptical of this, finding no
+reference to parent / child relationship in the 
+[Erlang process documentation](http://erlang.org/doc/reference_manual/processes.html#signals).
+
+I was wrong to be sceptical. While not being 
+part of Erlang, there is parent/child behaviour specified in the
+[OTP documentation](http://erlang.org/doc/design_principles/spec_proc.html): when a linked parent dies then 
+the exit signal becomes untrappable in OTP conformant processes, such as a GenServer.
+
+Here's a summary of the behaviour.
+
+| Trapping exits? | Reason for linked parent exit   | Exit message received? | Exits? | terminate/2 callback? | Diffent to non parent/child behaviour |
+| --------------- | ------------------------------- | ---------------------- | ------ | --------------------- | ------------------------------------- |
+| no              | `:normal`                       | no                     | no     | no                    | no                                    |
+| no              | any reason other than `:normal` | no                     | yes    | no                    | no                                    |
+| yes             | any reason other than `:normal` | no                     | yes    | yes                   | yes                                   |
+| yes             | `:normal`                       | no                     | yes    | yes                   | yes                                   |
+
+So indeed, exits are not trapped by OTP processes, eg GenServer, when the processes parent dies - parent being
+the process that has created this process.
+
+What raised my left eyebrow was that if the parent process exits
+with a `:normal` reason then this does not affect the child unless the child is trapping exits; when trapping
+exits a parent terminating with `:normal` also causes the child to die.
+
+## Code
+
+Here is a GenServer that we are going to use to investigate this parent / child exit behaviour.
+
+```elixir
+defmodule Life do
+  use GenServer
+
+  def trap_exits(server) do
+    :ok = GenServer.call(server, :trap_exits)
+  end
+
+  def make_parent_and_child do
+    {:ok, parent} = GenServer.start(__MODULE__, :parent)
+    {:ok, child} = GenServer.call(parent, :make_child)
+    {:ok, parent, child}
+  end
+
+  def make_parent_and_linked_child do
+    {:ok, parent} = GenServer.start(__MODULE__, :parent)
+    {:ok, child} = GenServer.call(parent, :make_linked_child)
+    {:ok, parent, child}
+  end
+
+  def alive_after_wait_for_death?(pid, count \\ 50)
+  def alive_after_wait_for_death?(pid, 0), do: Process.alive?(pid)
+
+  def alive_after_wait_for_death?(pid, count) do
+    case Process.alive?(pid) do
+      true ->
+        :timer.sleep(1)
+        alive_after_wait_for_death?(pid, count - 1)
+
+      _ ->
+        false
+    end
+  end
+
+  def init(tag), do: {:ok, %{tag: tag}}
+
+  def handle_call(:trap_exits, _, s) do
+    Process.flag(:trap_exit, true)
+    {:reply, :ok, s}
+  end
+
+  def handle_call(:make_child, _, s) do
+    {:reply, GenServer.start(__MODULE__, :child), s}
+  end
+
+  def handle_call(:make_linked_child, _, s) do
+    {:reply, GenServer.start_link(__MODULE__, :child), s}
+  end
+
+  def handle_info(event, %{tag: tag} = s) do
+    IO.inspect({tag, self(), event}, label: :handle_info)
+    {:noreply, s}
+  end
+
+  def terminate(reason, %{tag: tag}) do
+    IO.inspect({tag, self(), reason}, label: :terminate)
+  end
+end
+```
+
+## Effect of killing a parent on its unlinked child
+
+Just to get it out of the way let's look at what happens to an unlinked child when the parent exits.
+
+```elixir
+{:ok, parent, child} = Life.make_parent_and_child()
+
+Process.exit(parent, :kill)
+
+true = Life.alive_after_wait_for_death?(child)
+```
+
+As we would expect, when there is no link the parent's exit has no impact on the child.
+
+## Effect of killing a parent on a linked child
+
+```elixir
+{:ok, parent, child} = Life.make_parent_and_linked_child()
+
+Process.exit(parent, :kill)
+
+false = Life.alive_after_wait_for_death?(child)
+```
+
+Of course, if we kill a linked parent then the child will also die without calling `terminate/2`, 
+just like killing any other linked process. No suprise here.
+
+## Parent exits with a reason other than :normal
+
+```elixir
+{:ok, parent, child} = Life.make_parent_and_linked_child()
+
+GenServer.stop(parent, :some_reason)
+
+false = Life.alive_after_wait_for_death?(child)
+```
+
+When a linked process exits, a child that is not trapping exits will also die without a callback to
+ `terminate/2`, regardless of whether there is a parent/child relationship.
+
+```elixir
+{:ok, parent, child} = Life.make_parent_and_linked_child()
+Life.trap_exits(child)
+
+GenServer.stop(parent, :some_reason)
+
+false = Life.alive_after_wait_for_death?(child)
+```
+
+In contrast to a non parent / child linked process exit, if the child is trapping exits and the parent dies, 
+the exit is not trapped and the child will still die. The `terminate/2` callback is called (if supplied).
+
+## How about the effect on a linked child when a parent exits normally?
+
+```elixir
+{:ok, parent, child} = Life.make_parent_and_linked_child()
+
+GenServer.stop(parent, :normal)
+
+true = Life.alive_after_wait_for_death?(child)
+```
+
+A process exiting with a `:normal` reason, does not cause any linked processes to exit regardless of a parent/child
+relationship.
+
+```elixir
+{:ok, parent, child} = Life.make_parent_and_linked_child()
+Life.trap_exits(child)
+
+GenServer.stop(parent, :normal)
+
+false = Life.alive_after_wait_for_death?(child)
+```
+
+Surprise (Well it seemed counter-intuitive to me).
+
+If a child is trapping exits and its parent dies with 
+a `:normal` reason then the child will also exit with the same reason and a callback to `terminate/2`.
