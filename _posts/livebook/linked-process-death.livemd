@@ -12,6 +12,10 @@ see what happens when a linked process dies. The tl;dr is in the table below.
 | no              | any reason other than `:normal` | no                     | yes    |
 | yes             | any reason including `:normal`  | yes                    | no     |
 
+Note that the behaviour describes what happens when the exiting linked process is _not_the parent process. We 
+look at that in a 
+[subsequent post](https://furlough.merecomplexities.com/elixir/otp/2021/06/28/death-children-and-otp.html).
+
 This page can be downloaded as a LiveBook for execution. The raw markdown is [here](https://raw.githubusercontent.com/paulanthonywilson/furlough/master/_posts/livebook/linked-process-death.livemd),
 or you can follow the [previous instructions](https://furlough.merecomplexities.com/elixir/otp/2021/05/31/the-many-and-varied-ways-to-kill-an-otp-process.html#executing-as-livebook)
 for cloning the blog and executing the LiveBook pages.
@@ -256,8 +260,3 @@ I thought about adding this story at the beginning of the post, but I thought it
 cooking articles that people complain about - the ones where you have to scroll though paragraphs of prose
 before getting to the actual recipe. (Also it doesn't reflect well on me and people might get bored before reading
 this far.)
-
-## Updates
-
-* **2020-06-28** Added check to code to show that a process trapping exits does not die when a linked process dies with `:normal`,
-just like when not trapping exits.

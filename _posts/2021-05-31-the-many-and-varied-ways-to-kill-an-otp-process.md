@@ -8,3 +8,8 @@ categories: elixir otp
 
 {% include_relative livebook/varied-ways-to-kill.livemd %}
 
+{% include_relative shared/otp-process-death-series.md %}
+
+## Updates
+
+* **2021-06-29**: included the section linking to posts in this series.

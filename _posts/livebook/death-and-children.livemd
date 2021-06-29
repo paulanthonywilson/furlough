@@ -19,12 +19,12 @@ the exit signal becomes untrappable in OTP conformant processes, such as a GenSe
 
 Here's a summary of the behaviour.
 
-| Trapping exits? | Reason for linked parent exit   | Exit message received? | Exits? | terminate/2 callback? | Diffent to non parent/child behaviour |
-| --------------- | ------------------------------- | ---------------------- | ------ | --------------------- | ------------------------------------- |
-| no              | `:normal`                       | no                     | no     | no                    | no                                    |
-| no              | any reason other than `:normal` | no                     | yes    | no                    | no                                    |
-| yes             | any reason other than `:normal` | no                     | yes    | yes                   | yes                                   |
-| yes             | `:normal`                       | no                     | yes    | yes                   | yes                                   |
+| Trapping exits? | Diffent to non parent/child behaviour | Reason for linked parent exit   | Exit message received? | Exits? | terminate/2 callback? |
+| --------------- | ------------------------------------- | ------------------------------- | ---------------------- | ------ | --------------------- |
+| no              | no                                    | `:normal`                       | no                     | no     | no                    |
+| no              | no                                    | any reason other than `:normal` | no                     | yes    | no                    |
+| yes             | yes                                   | any reason other than `:normal` | no                     | yes    | yes                   |
+| yes             | yes                                   | `:normal`                       | no                     | yes    | yes                   |
 
 So indeed, exits are not trapped by OTP processes, eg GenServer, when the processes parent dies - parent being
 the process that has created this process.
@@ -32,6 +32,12 @@ the process that has created this process.
 What raised my left eyebrow was that if the parent process exits
 with a `:normal` reason then this does not affect the child unless the child is trapping exits; when trapping
 exits a parent terminating with `:normal` also causes the child to die.
+
+The [LiveBook](https://github.com/elixir-nx/livebook) page of this post is 
+[here](https://github.com/paulanthonywilson/furlough/blob/master/_posts/livebook/death-and-children.livemd) and
+you can follow the instructions in 
+[this post](https://furlough.merecomplexities.com/elixir/otp/2021/05/31/the-many-and-varied-ways-to-kill-an-otp-process.html#executing-as-livebook) 
+to execute.
 
 ## Code
 
@@ -171,7 +177,7 @@ GenServer.stop(parent, :normal)
 false = Life.alive_after_wait_for_death?(child)
 ```
 
-Surprise (Well it seemed counter-intuitive to me).
-
-If a child is trapping exits and its parent dies with 
-a `:normal` reason then the child will also exit with the same reason and a callback to `terminate/2`.
+If a child is trapping exits and its parent dies with a `:normal` reason then the child will also exit with the 
+same reason and a callback to `terminate/2`. It's all a bit 
+[Greek and tragic](https://en.wikipedia.org/wiki/Laius): only by doing the thing that you might expect would
+prevent the child's death (trapping exits), does its death come about.
