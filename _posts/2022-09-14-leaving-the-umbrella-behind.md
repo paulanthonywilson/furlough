@@ -66,7 +66,7 @@ Unless you are the kind of fool who ignores massive warnings, then the Umbrella 
 
 > Umbrella child apps are intended to be created as a way to deploy each of them separately
 
-Intended? Intended by whom? You could[^5] create separate [Elixir releases](https://elixir-lang.org/getting-started/mix-otp/config-and-releases.html#releases) to deploy different parts of an Umbrella separately, but I have seen no evidence that is their purpose. The blog post contains no links, or supporting arguments, to back up that statement.
+Intended? Intended by whom? You could[^5] create separate [Elixir releases](https://elixir-lang.org/getting-started/mix-otp/config-and-releases.html#releases) to deploy different parts of an Umbrella separately, but I have seen no evidence that is their purpose. The blog post contains no links, or supporting arguments, that back up that statement.
 
 If you create a new Phoenix app with `mix new myapp --umbrella` then you get two applications which can not be deployed separately in any way that makes sense, which makes me extra-sceptical about this apparent intention of Umbrella Projects.
 
@@ -114,7 +114,7 @@ A related issue not brought up (except by me) is that following tutorials needs 
 
 [here](https://elixirforum.com/t/what-s-wrong-with-umbrella-apps/49585/3?u=paulanthonywilson)
 
-More directories can be a pain to navigate, especially if you are using a navigation tree. Having to be in different directories perform different mix tasks can also be a bit of a headache.
+More directories can be a pain to navigate, especially if you are using a navigation tree. Having to be in different directories to perform different mix tasks can also be a bit of a headache.
 
 ### More code, slower build
 
