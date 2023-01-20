@@ -14,7 +14,7 @@ I have noticed that all projects that I've been brought in to work on are Flat[^
 
 So I [asked on Elixir Forum](https://elixirforum.com/t/what-s-wrong-with-umbrella-apps/49585) and got some answers that I did not like.
 
-Turns out that I have been looking at this the wrong way. Rather than there being strong reasons that Umbrellas are bad, people do not experience much benefit from them. At the same time Umbrella Projects do add a certain amount of overhead and tooling issues. People do not find that the costs versus benefits lands on the side of Umbrellas. Reluctantly, I can see their point.
+Turns out that I have been looking at this the wrong way. Rather than there being strong reasons that Umbrellas are bad, people do not experience much benefit from them. At the same time Umbrella Projects do add a certain amount of overhead and tooling issues. People do not find that Umbrellas entail many costs and few benefits. Reluctantly, I can see their point.
 
 ## Why I like Umbrella Projects in the first place
 
@@ -52,7 +52,7 @@ The (previously mentioned) [other anti-Umbrella post](https://www.jackmarchant.c
 
 > if everything is deployed together you can still technically access modules that are technically circular dependencies, which kind of breaks the separation concept.
 
-Well, no. If you explicitly create a cyclic dependency in the `mix.exs`'s then the compilation will fail
+Well, no. If you explicitly create a cyclic dependency in the `mix.exs`'s then the compilation will fail.
 
 ```sh
 ** (Mix) Could not sort dependencies. There are cycles in the dependency graph
@@ -114,7 +114,9 @@ A related issue not brought up (except by me) is that following tutorials needs 
 
 [here](https://elixirforum.com/t/what-s-wrong-with-umbrella-apps/49585/3?u=paulanthonywilson)
 
-More directories can be a pain to navigate, especially if you are using a navigation tree. Having to be in different directories to perform different mix tasks can also be a bit of a headache.
+More directories can be a pain to navigate, especially if you are using a navigation tree. Having to be in different directories to perform different mix tasks can also be a bit of a headache. 
+
+Another problem with the multiple "apps" is the repeated identical file names. I have edited the wrong `mix.exs` or `application.ex` file on several occasions.
 
 ### More code, slower build
 
@@ -122,7 +124,6 @@ More directories can be a pain to navigate, especially if you are using a naviga
 
 [here, on moving a project from Umbrella to flat](https://elixirforum.com/t/what-s-wrong-with-umbrella-apps/49585/18?u=paulanthonywilson)
 
-Another problem with the multiple "apps" is the repeated identical file names. I have edited the wrong `mix.exs` file, for instance, on several occasions.
 
 Also, from the same post,
 
@@ -150,6 +151,10 @@ I remember taking a look at [Boundary](https://hexdocs.pm/boundary/Boundary.html
 
 I am sufficiently convinced to take a step back from Umbrella Projects, despite using them for many years, and try some different approaches to get the same separation of concerns and dependency directionality. I am grateful to the participants in the [Elixir Forum thread](https://elixirforum.com/t/what-s-wrong-with-umbrella-apps/49585?u=paulanthonywilson) for the enlightening discussion.
 
+## **Updates**
+
+* 2023-01-20 - Slight sentence structure and narrative flow updates.
+
 ---
 
 [^1]: Umbrella Projects, that is. I prefer a waterproof jacket to an actual umbrella, especially here in windy Scotland.
@@ -165,3 +170,5 @@ I am sufficiently convinced to take a step back from Umbrella Projects, despite 
 [^6]: The rest of that post, and contributions from the author, does contain some great arguments; this is more of an aside, I think.
 
 [^7]: Never, apart from some experimental Nerves work with different interacting components. Also a Nerves + Server side deployment which I kept in a single Umbrella, but probably would not do again.
+
+
