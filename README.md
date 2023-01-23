@@ -1,0 +1,1 @@
+My blog. Go to https://furlough.merecomplexities.com. 
