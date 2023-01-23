@@ -14,6 +14,10 @@ I tend to not configure too much within project code as it's generally as easy t
 
 I went with the laziest choice of using application configuration in all the extractions so far, as in the library customisation method that is [specifically called out as an antipattern in the Elixir Library Guidelines](https://hexdocs.pm/elixir/1.14.3/library-guidelines.html#avoid-application-configuration). In general, I agree with that guideline[^2]. I've ignored it here as none of the extracted libraries could be used with multiple configurations, and it is the simplest to write and for clients to use. 
 
+## Logging
+
+In general I am not too keen on libraries that log. I figure that it is better to find some way to communicate the information back to the client and let it decide what to do. Nerves stuff logs a lot though, so I figure why buck that trend and make things more complicated? So I have kept logging in.
+
 ## Are Umbrella Projects still bad?
 
 I don't know. The [previous objections]({% post_url 2022-09-14-leaving-the-umbrella-behind %}) still stand, but there is something to be said for easily writing code for a subsytem _in-situ_ then extracting it out into its own library later. I should force myself to write a bit more about this.
