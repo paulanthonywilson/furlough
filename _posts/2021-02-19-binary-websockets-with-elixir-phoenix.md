@@ -89,7 +89,9 @@ The other `handle_info/2` handler deals with updating the rate of jumping (image
 
 ```elixir
   def handle_in({message, opts}, state) do
-    Logger.debug(fn -> "handle_in with message: #{inspect(message)}, opts: #{inspect(opts)}" end)
+    Logger.debug(
+      fn -> "handle_in with message: #{inspect(message)}, opts: #{inspect(opts)}" end
+    )
     {:ok, state}
   end
 ```
@@ -108,7 +110,8 @@ The other `handle_info/2` handler deals with updating the rate of jumping (image
 The custom socket needs to be mounted in the [application endpoint](https://github.com/paulanthonywilson/binary-websockets-example/blob/main/lib/starjumps_web/endpoint.ex). Here it is, next to the LiveView endpoint being mounted.
 
 ```elixir
-  socket "/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]]
+  socket "/live", Phoenix.LiveView.Socket, 
+    websocket: [connect_info: [session: @session_options]]
 
   socket "/star-jumping/:token/:jump_rate", StarjumpSocket
 ```
