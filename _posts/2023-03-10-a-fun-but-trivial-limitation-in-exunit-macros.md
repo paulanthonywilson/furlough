@@ -1,6 +1,6 @@
 ---
 layout: post
-title: A fun, but trivial, limitation in ExUnit (/Macros)
+title: A fun, but trivial, limitation in Elixir ExUnit (/Macros)
 date: 2023-03-10 11:59:43 +0000
 author: Paul Wilson
 categories: elixir
