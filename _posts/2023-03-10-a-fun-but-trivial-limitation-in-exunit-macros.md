@@ -22,7 +22,9 @@ end
 Gets you
 
 ```
-** (ArgumentError) cannot inject attribute @port into function/macro because cannot escape #Port<0.1234>. The supported values are: lists, tuples, maps, atoms, numbers, bitstrings, PIDs and remote functions in the format &Mod.fun/arity
+** (ArgumentError) cannot inject attribute @port into function/macro because 
+cannot escape #Port<0.1234>.  The supported values are: lists, tuples, maps, 
+atoms, numbers, bitstrings, PIDs and remote functions in the format &Mod.fun/arity
 ```
 
 It is, of course, super-easy to work around:
