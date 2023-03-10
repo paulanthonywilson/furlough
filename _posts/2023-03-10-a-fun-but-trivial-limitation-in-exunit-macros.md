@@ -52,9 +52,11 @@ defmodule ScratchpadTest do
 
   defp port, do: @port
 end
-
 ```
+
 `defp/2` and `def/2` are also macros. This too does not compile
+
+
 
 ```elixir
 defmodule Scratchpad do
@@ -77,3 +79,19 @@ No doubt if I was more learned, or put the research in, I would understand why. 
 ¯\\(°_o)/¯☕️
 
 Anyway, if you have read this far sorry (not sorry) for you learning nothing useful. I'm going back to some crazy test-driving of websocket client stuff using [Mint Websocket](https://hexdocs.pm/mint_web_socket/Mint.WebSocket.html).
+
+
+<hr/>
+
+**Update 2023-03022** Late update: ubiquitous and helpful Elixir Forum poster Benjamin Milde [explained the problem is the way Elixir macros work](https://elixirforum.com/t/blog-post-a-fun-but-trivial-limitation-in-elixir-exunit-macros/54484/2?u=paulanthonywilson): they essentially work by injecting the macro AST at the point in the code AST. As ports and reference values can not be seralised to AST then things fail. That makes sense in terms of mechanism and that there is no good reason for passing ports or references from compile time to runtime. (Although I now do wonder why PIDs are AST serialisable).
+
+The actual issue is between compile and runtime, not really macros, which is obvious now I think about it. For example, this does not comile
+
+```elixir
+defmodule Scratchpad do
+  @port :erlang.list_to_port('#Port<0.1234>')
+  def port, do: @port
+end
+```
+
+I should really rewrite this post with that emphasis.
