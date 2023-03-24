@@ -6,11 +6,11 @@ author: Paul Wilson
 categories: elixir tdd mocks
 ---
 
-The José Valim approved (tm) way of introducing mocks[^1] into Elixir is through using [injecting implementations of explicit contracts definned by behaviours](https://dashbit.co/blog/mocks-and-explicit-contracts). José and pals crystallised this approach with the popular [Mox hexicle](https://hexdocs.pm/mox/Mox.html).
-e
+The José Valim approved (tm) way of introducing mocks[^1] into Elixir is through [injecting implementations of explicit contracts definned by behaviours](https://dashbit.co/blog/mocks-and-explicit-contracts). José and pals crystallised this approach with the popular [Mox hexicle](https://hexdocs.pm/mox/Mox.html).
+
 The standard way of injecting the mock or real implementation into the code under test is by passing modules around by some method. The implementation module is typically loaded from _application config_ which can be tailored to the _mix environment_. I find this approach somewhat dissatisfying as the _module_ being passed around is just an atom containing no metadata.
 
-Apart from a general lack of tidiness, this provides a route for errors to slip through code which passes all the test. I do have a suggestion which would help. It will avoid code that looks like this
+Apart from a general lack of tidiness, this provides a route for errors to slip through code which passes all the test. I do have a suggestion which would help. It will involve code that looks like this
 
 ```elixir
   @implementation if Mix.env() == :test, do: MockCatFactsApi, else: RealCatFactsApi
@@ -21,7 +21,7 @@ Apart from a general lack of tidiness, this provides a route for errors to slip 
   end
 ```
 
-You may not like the look of this but please bear with me. You may, at least, learn something surprising about feline collar bones. I don't believe the thing about Newton, though.
+You may not be attracted by that, but please bear with me. You may, at least, learn something surprising about feline collar bones. (I don't believe the thing about Newton, though.)
 
 
 ### The usual approach
@@ -385,12 +385,14 @@ iex(16)> CatFacts.fact()
  "Isaac Newton invented the cat flap. Newton was experimenting in a pitch-black room. Spithead, one of his cats, kept opening the door and wrecking his experiment. The cat flap kept both Newton and Spithead happy."}
 ```
 
-Citation needed and I doubt it, though I do feel better having read that. Even if true, it still would not not be my favourite cat fact. My favourite is one that I read on an information board at [The Highland Wildlife Park](https://www.highlandwildlifepark.org.uk): the decline in Scottish wildcat numbers was reduced during the First World War because conscription reduced the gamekeeper population.
+Citation needed and I doubt it, though I do feel better having read that.
+
+Even if true, it still would not not be my favourite cat fact. My favourite is one that I read on an information board at [The Highland Wildlife Park](https://www.highlandwildlifepark.org.uk): the decline in Scottish wildcat numbers was reduced during the First World War because conscription reduced the gamekeeper population.
 
 ![Photo of information board: "The prolonged tragedy of WW1 calls up gamekeepers leading to a decline in wildcat persecution](/assets/wild_cat_ww1.png)
 
 
-
+PS Just saw another cat fact in the news as I was writing this: approval for releasing [Scottish wildcats being into The Cairngorms has been granted](https://www.bbc.co.uk/news/uk-scotland-highlands-islands-65065167) from The Highland Wildlife Park. 
 
 
 --- 
