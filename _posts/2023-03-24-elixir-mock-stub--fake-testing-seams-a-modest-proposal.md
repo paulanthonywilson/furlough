@@ -172,6 +172,7 @@ defmodule CatFactsTest do
   end
 
   # still taking the other tests as read
+end
 ```
 
 
@@ -273,6 +274,7 @@ defmodule CatFacts do
   end
 
   # etc...
+end
 ```
 
 The tests still run.
