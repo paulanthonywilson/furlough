@@ -1,6 +1,6 @@
 ---
 layout: page
-title: About
+title: About this site
 permalink: /about/
 ---
 
@@ -10,3 +10,5 @@ I ended up (intermittently) ~~b~~logging, here than on my old blog so as of June
 to here.
 
 The Repo is [here](https://github.com/paulanthonywilson/furlough). Feel free to add issues or pull requests, if I've got something wrong.
+
+If you want to know about me, [go here](/about-me)
