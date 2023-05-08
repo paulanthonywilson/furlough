@@ -60,7 +60,7 @@ ol,
 dl,
 figure,
 %vertical-rhythm {
-  margin-bottom: calc($spacing-unit / 2);
+  margin-bottom: calc(30px / 2);
 }
 
 
@@ -162,7 +162,7 @@ a {
 blockquote {
   color: $grey-color;
   border-left: 4px solid $grey-color-light;
-  padding-left: calc($spacing-unit / 2);
+  padding-left: calc(30px / 2);
   @include relative-font-size(1.125);
   letter-spacing: -1px;
   font-style: italic;
@@ -217,8 +217,8 @@ pre {
   @include media-query($on-laptop) {
     max-width: -webkit-calc(#{$content-width} - (#{$spacing-unit}));
     max-width: calc(#{$content-width} - (#{$spacing-unit}));
-    padding-right: calc($spacing-unit / 2);
-    padding-left: calc($spacing-unit / 2);
+    padding-right: calc(30px / 2);
+    padding-left: calc(30px / 2);
   }
 }
 
@@ -275,7 +275,7 @@ table {
 
   th,
   td {
-    padding: calc(($spacing-unit / 3)) calc(($spacing-unit / 2));
+    padding: calc((30px / 3)) calc((30px / 2));
   }
 
   th {
