@@ -64,7 +64,7 @@ The Vintage Net Wizard is a super-useful little [hexicle](https://hexdocs.pm/vin
 
 This launches the wizard, so you don't have to. By default:
 
-* It launches the wizard on startup, if the WiFi is unconfigured
+* It launches the wizard on startup, if the WiFi is not configured
 * It launches the wizard if GPIO pin 21 is detected as being high (ie under voltage) for 3 seconds. For instance if you have connected 21 to 3V via a button, and pressed it for 3 seconds.
 
 ### DS18B20
@@ -88,19 +88,25 @@ It also means that my extracted hexicles can share a pub-sub registry.
 
 ### Next up, movement detection for determining whether a room is occupied
 
-An [HC-SR 501 infra-red sensor](https://duckduckgo.com/?q=HC-SR501) is a cheap device for detecting movement. Next I'll extract out a hexicle to  broadcast to subscribers
+* [Github](https://github.com/paulanthonywilson/hc_sr_501_occupation)
+* [HexDocs](https://hexdocs.pm/hc_sr_501_occupation/readme.html)
+* **Mix install**: `{:hc_sr_501_occupation, "~> 0.1.0"}`
+
+An [HC-SR 501 infra-red sensor](https://duckduckgo.com/?q=HC-SR501) is a cheap device for detecting movement. ~~Next I'll extract out a hexicle to  broadcast to subscribers~~. This hexicle allows processes in your Nerves application to subscribe and receive updates:-
 
 * when movement is detected
 * when movement is no longer detected
-* when movement has not been detected in a while, so that we can determine that a (small, like my office) room is unoccupied
+* when an area has become unoccupied (ie movement has not been detected for a configurable amount of time)
 * when an unoccupied room becomes occupied
 
-Watch this space.
+
+In this case I have swapped [Library Guideline Antipattern](https://hexdocs.pm/elixir/1.14.3/library-guidelines.html#avoid-application-configuration). I figure it should be possible to attach multiple sensors to your Nerves device, so I have not sinned by adding library configuration. Instead I have committed the act of some [light meta-programming](https://github.com/paulanthonywilson/hc_sr_501_occupation/blob/e4706073c2c3f8c4b09c68337582faae61ca7e1a/lib/hc_sr501_occupation/movement_sensor.ex#L7) to make things easier the anyone using this hexicle.
 
 
 
+---
 
-
+**Update 2023-05-08** Updated the HC-SR 501 section as I did release that hexicle ages ago(!)
 
 ---
 
