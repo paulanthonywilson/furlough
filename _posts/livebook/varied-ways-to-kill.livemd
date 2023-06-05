@@ -313,7 +313,7 @@ Trapping exits has no impact on `exit/1`; the behaviour the same as when the pro
 
 ## Returning :stop from a message callback
 
-To me, returning `{:stop, reason, state}` or `{:stop, reason, reply, state}` from a message handlign callback
+To me, returning `{:stop, reason, state}` or `{:stop, reason, reply, state}` from a message handling callback
 feels like the usual way to terminate a `GenServer`.
 
 | Trapping exits? | Reason                                        | Exits? | Message? | terminate/2 callback? | Error logged? | GenServer.call/2 exit? |
