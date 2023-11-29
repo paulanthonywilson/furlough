@@ -6,7 +6,7 @@ author: Paul Wilson
 categories: elixir tdd mocks
 ---
 
-The José Valim approved (tm) way of introducing mocks[^1] into Elixir is through [injecting implementations of explicit contracts definned by behaviours](https://dashbit.co/blog/mocks-and-explicit-contracts). José and pals crystallised this approach with the popular [Mox hexicle](https://hexdocs.pm/mox/Mox.html).
+The José Valim approved (tm) way of introducing mocks[^1] into Elixir is through [injecting implementations of explicit contracts defined by behaviours](https://dashbit.co/blog/mocks-and-explicit-contracts). José and pals crystallised this approach with the popular [Mox hexicle](https://hexdocs.pm/mox/Mox.html).
 
 The standard way of injecting the mock or real implementation into the code under test is by passing modules around by some method. The implementation module is typically loaded from _application config_ which can be tailored to the _mix environment_. I find this approach somewhat dissatisfying as the _module_ being passed around is just an atom containing no metadata.
 
